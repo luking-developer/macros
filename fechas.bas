@@ -1,26 +1,74 @@
-Sub AgregarFechaSiVacio()
-    Dim hoja As Object
-    Dim fila As Integer
-    Dim celdaA As Object
-    Dim celdaN As Object
-    Dim ultimaFila As Integer
+Sub AgregarColumnaFechaNumero
+    On Error GoTo ErrHandler
 
-    hoja = ThisComponent.Sheets(0) ' Usa la primera hoja
+    Dim oDoc As Object
+    Dim oSheet As Object
+    Dim oCursor As Object
+    Dim oRange As Object
+    Dim oCell As Object
 
-    ' Comienza desde la fila 2
-    fila = 2
+    Dim ultimaCol As Long
+    Dim ultimaFila As Long
+    Dim i As Long
+    Dim fechaColIndex As Long
+    Dim newColIndex As Long
+    Dim fechaColLetter As String
+    Dim dateColText As String
+    Dim newColName As String
 
-    ' Recorre las filas hasta encontrar una fila vacía en la columna A
-    Do While hoja.getCellByPosition(1, fila).String <> "" ' Mientras haya contenido en la columna A
-        Set celdaA = hoja.getCellByPosition(0, fila) ' Columna A (índice 0)
-        Set celdaN = hoja.getCellByPosition(13, fila) ' Columna N (índice 13)
+    oDoc = ThisComponent
+    oSheet = oDoc.CurrentController.ActiveSheet
 
-        ' Si la columna A tiene contenido y la columna N está vacía
-        If celdaA.String <> "" And celdaN.String = "" Then
-            celdaN.Value = Date
-            celdaN.NumberFormat = 37 ' Formato de fecha
+    ' Expected header text
+    dateColText = "FECHA_ALTA"
+    newColName = "FECHA"
+
+    ' Detect last used column and row
+    oCursor = oSheet.createCursor()
+    oCursor.gotoEndOfUsedArea(True)
+    ultimaCol = oCursor.RangeAddress.EndColumn
+    ultimaFila = oCursor.RangeAddress.EndRow
+
+    ' Find the index of the column with header = dateColText
+    fechaColIndex = -1
+    For i = 0 To ultimaCol
+        oCell = oSheet.getCellByPosition(i, 0)
+        If Trim(UCase(oCell.String)) = UCase(dateColText) Then
+            fechaColIndex = i
+            Exit For
         End If
+    Next i
 
-        fila = fila + 1 ' Avanzar a la siguiente fila
-    Loop
+    If fechaColIndex = -1 Then
+        MsgBox "No se encontró la columna '" & dateColText & "' en los encabezados.", 48, "AgregarColumnaFechaNumero"
+        Exit Sub
+    End If
+
+    ' Insert new column
+    newColIndex = ultimaCol + 1
+    oSheet.Columns.insertByIndex(newColIndex, 1)
+
+    ' Get column letter for formulas
+    fechaColLetter = ColumnIndexToLetters(fechaColIndex)
+
+    ' Fill new column with =VALUE(<fecha_alta_cell>)
+    For i = 1 To ultimaFila
+        oCell = oSheet.getCellByPosition(newColIndex, i)
+        oCell.Formula = "=VALUE(" & fechaColLetter & (i + 1) & ")"
+    Next i
+
+    ' Apply a built-in date format (index 36 = DD/MM/YY)
+    oRange = oSheet.getCellRangeByPosition(newColIndex, 1, newColIndex, ultimaFila)
+    oRange.NumberFormat = 36
+
+    ' Set new header
+    oSheet.getCellByPosition(newColIndex, 0).String = newColName
+
+	OrdenarPorFecha(newColName)
+
+    Exit Sub
+
+	ErrHandler:
+    	MsgBox "Error BASIC: " & Err & vbCrLf & Error$ & vbCrLf & "Line: " & Erl, 16, "AgregarColumnaFechaNumero"
 End Sub
+
