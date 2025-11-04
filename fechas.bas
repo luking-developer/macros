@@ -40,7 +40,7 @@ Sub AgregarColumnaFechaNumero
     Next i
 
     If fechaColIndex = -1 Then
-        MsgBox "No se encontró la columna '" & dateColText & "' en los encabezados.", 48, "AgregarColumnaFechaNumero"
+        MsgBox "No se encontrÃ³ la columna '" & dateColText & "' en los encabezados.", 48, "AgregarColumnaFechaNumero"
         Exit Sub
     End If
 
@@ -49,7 +49,7 @@ Sub AgregarColumnaFechaNumero
     oSheet.Columns.insertByIndex(newColIndex, 1)
 
     ' Get column letter for formulas
-    fechaColLetter = ColumnIndexToLetters(fechaColIndex)
+    fechaColLetter = UtilidadesFecha.ColumnIndexToLetters(fechaColIndex)
 
     ' Fill new column with =VALUE(<fecha_alta_cell>)
     For i = 1 To ultimaFila
@@ -71,4 +71,5 @@ Sub AgregarColumnaFechaNumero
 	ErrHandler:
     	MsgBox "Error BASIC: " & Err & vbCrLf & Error$ & vbCrLf & "Line: " & Erl, 16, "AgregarColumnaFechaNumero"
 End Sub
+
 
