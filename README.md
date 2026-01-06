@@ -3,8 +3,7 @@ Este repositorio de macros en Basic (.bas) contiene herramientas para automatiza
 
 | Archivo | Rutina Principal | Descripción Breve |
 | :--- | :--- | :--- |
-| `fechas.bas` | `AgregarColumnaFechaNumero` | Busca la columna `FECHA_ALTA`, inserta una columna nueva llamada `FECHA` y la llena con la fecha en formato numérico para permitir un ordenamiento correcto. Llama a la subrutina `OrdenarPorFecha` para ordenar la tabla de forma descendente. |
-| `utilidades_fecha.bas` |  | Contiene las rutinas auxiliares privadas (`ColumnIndexToLetters` y `OrdenarPorFecha`) que son llamadas desde `AgregarColumnaFechaNumero`. |
+| `utilidades_fecha.bas` | `OrdenarPorFechaAlta` | Transforma la columna `FECHA_ALTA` en valores de fecha reales, formatea a tipo `dd/mm/yyyy` y ordena los registros descendentemente de acuerdo a esa fecha. |
 | `coordenadas.bas` | `GenerarNubeDePuntos` | Procesa una hoja de datos para filtrar registros por una lista de distritos (`Rafaela`, `Bella Italia` por defecto), formatea una columna de coordenadas (reemplazando comas por tabulaciones y puntos por comas) y vuelca el resultado a un archivo de texto (`coordenadas.txt`) junto con el usuario correspondiente. |
 | `reportes.bas` | `AgregarFechaSiVacio` | Recorre las filas de la primera hoja. Si la Columna A (índice 0) tiene contenido y la Columna N (índice 13) está vacía, inserta la fecha actual en la Columna N y le aplica un formato de fecha. |
 
