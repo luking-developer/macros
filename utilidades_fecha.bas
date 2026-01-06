@@ -1,73 +1,68 @@
-' Convert 0-based column index to Excel-like letters
-Private Function ColumnIndexToLetters(colIndex As Long) As String
-    Dim n As Long
-    Dim s As String
-    n = colIndex
-    s = ""
-    Do
-        s = Chr(65 + (n Mod 26)) & s
-        n = (n \ 26) - 1
-    Loop While n >= 0
-    ColumnIndexToLetters = s
-End Function
-
-Private Sub OrdenarPorFecha(nombreColumna As String)
+Sub OrdenarPorFechaAlta()
     On Error GoTo ErrHandler
+    Dim oDoc As Object : oDoc = StarDesktop.CurrentComponent
+    Dim oSheet As Object : oSheet = oDoc.CurrentController.ActiveSheet
+    Dim oCursor As Object : oCursor = oSheet.createCursor()
     
-    Dim oDoc As Object
-    Dim oSheet As Object
-    Dim oRange As Object
-    Dim oCell As Object
-    Dim oSortFields(0) As New com.sun.star.util.SortField
-    Dim oSortDesc(0) As New com.sun.star.beans.PropertyValue
+    oCursor.gotoEndOfUsedArea(False)
+    Dim lastRow As Long : lastRow = oCursor.RangeAddress.EndRow
     
-    Dim columnaIndice As Long
-    Dim i As Long
-    
-    oDoc = ThisComponent
-    oSheet = oDoc.CurrentController.ActiveSheet
-    
-    ' Obtener el rango de datos que se va a ordenar
-   	Dim oCursor As Object
-	oCursor = oSheet.createCursor()
-	oCursor.gotoEndOfUsedArea(False) ' Mueve el cursor al final de los datos
-	oCursor.gotoStartOfUsedArea(True) ' Extiende la selección desde el final hasta el inicio
-	oRange = oCursor
-    
-    ' Encontrar el índice de la columna de ordenamiento
-    columnaIndice = -1
-    For i = 0 To oRange.Columns.Count - 1
-        ' Acceder a la celda por su posición relativa en el rango
-        oCell = oRange.getCellByPosition(i, 0)
-        
-        If UCase(oCell.String) = UCase(nombreColumna) Then
-            columnaIndice = i
-            Exit For
-        End If
+    ' 1. Localizar Columnas
+    Dim i As Long, colAlta As Long : colAlta = -1
+    Dim colFecha As Long : colFecha = -1
+    For i = 0 To oCursor.RangeAddress.EndColumn
+        Dim sH As String : sH = UCase(Trim(oSheet.getCellByPosition(i, 0).String))
+        If sH = "FECHA_ALTA" Then colAlta = i
+        If sH = "FECHA" Then colFecha = i
     Next i
     
-    If columnaIndice = -1 Then
-        MsgBox "No se encontró la columna '" & nombreColumna & "' para ordenar.", 48, "Ordenar por Fecha"
-        Exit Sub
-    End If
+    If colAlta = -1 Then Exit Sub ' No perder tiempo si no hay origen
+       
+    ' 3. ConversiÃ³n de Datos
+    For i = 1 To lastRow
+        Dim sRaw As String : sRaw = LCase(Trim(oSheet.getCellByPosition(colAlta, i).String))
+        Dim oCeldaDest As Object : oCeldaDest = oSheet.getCellByPosition(colAlta, i)
+        
+        If sRaw <> "" Then
+            sRaw = Join(Split(sRaw, "sept."), "sep.") 
+            On Error Resume Next
+            oCeldaDest.Value = CDate(sRaw)
+            On Error GoTo ErrHandler
+        End If
+    Next i
+
+    ' 4. FORMATEO DE FUERZA BRUTA (Usando el Dispatcher)
+    ' Seleccionamos toda la columna de datos
+    Dim oRange As Object
+    oRange = oSheet.getCellRangeByPosition(colAlta, 1, colAlta, lastRow)
+    oDoc.CurrentController.select(oRange)
     
-    ' Configurar los campos de ordenamiento
-    With oSortFields(0)
-        .Field = columnaIndice ' El índice de la columna en el rango
-        .SortAscending = False ' Orden descendente
-    End With
+    Dim document   as object : document   = oDoc.CurrentController.Frame
+    Dim dispatcher as object : dispatcher = createUnoService("com.sun.star.frame.DispatchHelper")
+    Dim args(0) as new com.sun.star.beans.PropertyValue
+    args(0).Name = "NumberFormatValue"
     
-    ' Configurar las propiedades del ordenamiento
-    With oSortDesc(0)
-        .Name = "SortFields"
-        .Value = oSortFields()
-    End With
+    ' El valor 36 es el estÃ¡ndar interno para DD/MM/YYYY
+    args(0).Value = 36
+    dispatcher.executeDispatch(document, ".uno:NumberFormatValue", "", 0, args())
+
+    ' 5. ORDENACIÃ“N
+    Dim oSortCur As Object : oSortCur = oSheet.createCursor()
+    oSortCur.gotoEndOfUsedArea(True)
     
-    ' Realizar el ordenamiento en el rango de datos
-    oRange.Sort(oSortDesc())
-    
+    Dim oSortFields(0) As New com.sun.star.table.TableSortField
+    oSortFields(0).Field = colAlta
+    oSortFields(0).IsAscending = False
+
+    Dim oSortProps(1) As New com.sun.star.beans.PropertyValue
+    oSortProps(0).Name = "SortFields"
+    oSortProps(0).Value = oSortFields()
+    oSortProps(1).Name = "ContainsHeader"
+    oSortProps(1).Value = True
+
+    oSortCur.Sort(oSortProps())
     Exit Sub
-    
-	ErrHandler:
-    	MsgBox "Error BASIC en OrdenarPorFecha: " & Err & vbCrLf & Error$ & vbCrLf & "Line: " & Erl, 16, "Ordenar por Fecha"
+
+ErrHandler:
+    MsgBox "Error: " & Error$ & " en lÃ­nea " & Erl
 End Sub
